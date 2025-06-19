@@ -1,19 +1,18 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, color::palettes::css::*};
 
 #[derive(Component, Debug)]
-pub(crate) struct Collider {
+pub(crate) struct AABBCollider {
     pub width: f32,
     pub height: f32,
-    pub collision_type: CollideType,
 }
 
-impl Collider {
-    pub fn new(width: f32, height: f32, collision_type: CollideType) -> Self {
-        Self {width, height, collision_type}
+impl AABBCollider {
+    pub fn new(width: f32, height: f32) -> Self {
+        Self {width, height}
     }
 }
 
-pub(crate) fn is_touching(a: &Collider, b: &Collider, transform_delta: &Vec3) -> bool {
+pub(crate) fn aabb_collision(a: &AABBCollider, b: &AABBCollider, transform_delta: &Vec3) -> bool {
     ( a.width/2.  + b.width/2.  >= transform_delta.x.abs()) &&
     ( a.height/2. + b.height/2. >= transform_delta.y.abs())
 }
@@ -37,35 +36,33 @@ impl CollisionEvent {
     }
 }
 
-pub(crate) fn find_collisions_dynamic (
-    colliders: Query<(Entity, &Collider, &Transform)>,
+pub(crate) fn find_collisions(
+    mut gizmos: Gizmos,
+    colliders: Query<(Entity, &AABBCollider, &Transform, &CollideType)>,
     mut collision_event_writer: EventWriter<CollisionEvent>,
 ) {
-    let collisions = colliders.iter_combinations()
-        .filter(|[ (_, collider_a, _), (_, collider_b, _)]|
-            (collider_a.collision_type == CollideType::Trigger) !=
-            (collider_b.collision_type == CollideType::Trigger)
-        )
-        .filter(|[ (_, collider_a, _), (_, collider_b, _)]|
-            (collider_a.collision_type == CollideType::Static) !=
-            (collider_b.collision_type == CollideType::Static)
-        )
-        .filter(|[ (_, collider_a, _), (_, collider_b, _)]|
-            (
-                (collider_a.collision_type == CollideType::Trigger) !=
-                (collider_b.collision_type == CollideType::Static)
-            ) || (
-                (collider_a.collision_type == CollideType::Static) !=
-                (collider_b.collision_type == CollideType::Trigger)
-            )
+    // Draw Gizmos
+    for (_, collider, transform, _) in colliders.iter() {
+        gizmos.rect_2d(
+            Isometry2d::new(transform.translation.truncate(),
+            Rot2::default()),
+            Vec2::new(collider.width, collider.height),
+            RED
         );
+    }
+
+    let collisions = colliders.iter_combinations()
+        .filter(|collider_pairs| match collider_pairs {
+            [(_,_,_, CollideType::Dynamic), (_,_,_,_)] |
+            [(_,_,_,_), (_,_,_, CollideType::Dynamic)] => true,
+            _ => false,
+        });
     for [
-        (entity_a, collider_a, transform_a),
-        (entity_b, collider_b, transform_b),
+        (entity_a, collider_a, transform_a, _),
+        (entity_b, collider_b, transform_b, _),
     ] in collisions {
-        if is_touching(
-            collider_a,
-            collider_b,
+        if aabb_collision(
+            collider_a, collider_b,
             &(transform_a.translation - transform_b.translation),
         ) {
             collision_event_writer.write(CollisionEvent::new(entity_a, entity_b));
@@ -74,14 +71,14 @@ pub(crate) fn find_collisions_dynamic (
 }
 
 pub(crate) fn handle_collision (
-    mut collision_event_reader: ResMut<Events<CollisionEvent>>,
-    mut query: Query<(&mut Transform, &Collider)>,
+    mut collision_event_reader: EventReader<CollisionEvent>,
+    mut query: Query<(&mut Transform, &AABBCollider, &CollideType)>,
 ) {
-    for CollisionEvent{entity, collided_entity} in collision_event_reader.drain() {
+    for CollisionEvent{entity, collided_entity} in collision_event_reader.read() {
         let Ok([
-               (mut transform_a, Collider{width: width_a, height: height_a, collision_type: type_a}),
-               (mut transform_b, Collider{width: width_b, height: height_b, collision_type: type_b}),
-        ]) = query.get_many_mut([entity, collided_entity]) else {continue;};
+            (mut transform_a, AABBCollider{width: width_a, height: height_a}, type_a),
+            (mut transform_b, AABBCollider{width: width_b, height: height_b}, type_b),
+        ]) = query.get_many_mut([*entity, *collided_entity]) else {continue;};
 
         let delta = transform_b.translation - transform_a.translation;
 
@@ -90,15 +87,14 @@ pub(crate) fn handle_collision (
             height_a/2. + height_b/2. - delta.y.abs(),
         );
 
-        let axis: bool = overlap.x.abs() < overlap.y.abs() && overlap.x.abs() != 0.;
+        let axis = overlap.x.abs() < overlap.y.abs() && overlap.x.abs() != 0.;
 
         match (type_a, type_b) {
             (CollideType::Dynamic, CollideType::Dynamic) => {
                 if axis {
                     transform_a.translation.x += overlap.x/2.;
                     transform_b.translation.x -= overlap.x/2.;
-                }
-                else {
+                } else {
                     transform_a.translation.y += overlap.y/2.;
                     transform_b.translation.y -= overlap.y/2.;
                 }

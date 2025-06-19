@@ -9,6 +9,8 @@ use crate::{
     screens::Screen,
 };
 
+use crate::physics::collision::{AABBCollider, CollideType};
+
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<LevelAssets>();
     app.load_resource::<LevelAssets>();
@@ -43,11 +45,24 @@ pub fn spawn_level(
         Visibility::default(),
         StateScoped(Screen::Gameplay),
         children![
-            player(400.0, &player_assets, &mut texture_atlas_layouts),
+            (
+                player(400.0, &player_assets, &mut texture_atlas_layouts),
+                AABBCollider::new(150.,200.),
+                CollideType::Dynamic,
+            ),
+            (
+                Transform{
+                    translation: Vec3::new(200.,100.,0.),
+                    ..default()
+                },
+                AABBCollider::new(150.,300.),
+                CollideType::Static,
+
+            ),
             (
                 Name::new("Gameplay Music"),
                 music(level_assets.music.clone())
-            )
+            ),
         ],
     ));
 }

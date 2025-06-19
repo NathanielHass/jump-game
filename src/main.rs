@@ -46,6 +46,7 @@ impl Plugin for AppPlugin {
 
         // Add other plugins.
         app.add_plugins((
+            physics::plugin,
             asset_tracking::plugin,
             audio::plugin,
             demo::plugin,

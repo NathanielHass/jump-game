@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use crate::physics::{
     PIXELS_PER_METER,
-    collision::CollisionType,
-    gravity::GroundState,
 };
 
 const FORCE_GRAVITY: f32 = PIXELS_PER_METER * 500.;
@@ -15,41 +13,31 @@ const VELOCITY_MAXIMUM: f32 = PIXELS_PER_METER * 1000.;
 const VELOCITY_MINIMUM: f32 = PIXELS_PER_METER * 65.;
 
 #[derive(Component, Debug)]
-pub struct Velocity{pub value: Vec2}
+pub struct Velocity(Vec2);
 
 #[derive(Component, Debug)]
-pub struct Acceleration{pub value: Vec2}
+pub struct Acceleration(Vec2);
 
 pub fn apply_forces(
-    mut query: Query<(&mut Acceleration, &mut Velocity, &GroundState, &CollisionType)>,
+    mut query: Query<(&mut Acceleration, &mut Velocity)>,
     time: Res<Time>,
 ) {
-    for (mut acceleration, mut velocity, ground_state, collision_type) in query.iter_mut() {
-        match collision_type {
-            CollisionType::Dynamic => (),
-            _ => continue,
-        };
+    for (mut acceleration, mut velocity) in query.iter_mut() {
+        // acceleration.0.y -= FORCE_GRAVITY * time.delta_secs();
 
-        if ground_state.is_grounded {
-            acceleration.value.y = 0.;
-            velocity.value.y = 0.;
-        } else {
-            acceleration.value.y -= FORCE_GRAVITY * time.delta_seconds();
-        }
-
-        acceleration.value.x +=
-            if acceleration.value.x > 0. { -ACCELERATION_DECAY * time.delta_seconds() }
-            else if acceleration.value.x < 0. { ACCELERATION_DECAY * time.delta_seconds()}
+        acceleration.0.x +=
+            if acceleration.0.x > 0. { -ACCELERATION_DECAY * time.delta_secs() }
+            else if acceleration.0.x < 0. { ACCELERATION_DECAY * time.delta_secs()}
             else { 0.};
-        acceleration.value = acceleration.value.clamp(
-            Vec2::splat(-ACCELERATION_MAXIMUM * time.delta_seconds()),
-            Vec2::splat( ACCELERATION_MAXIMUM * time.delta_seconds()),
+        acceleration.0 = acceleration.0.clamp(
+            Vec2::splat(-ACCELERATION_MAXIMUM * time.delta_secs()),
+            Vec2::splat( ACCELERATION_MAXIMUM * time.delta_secs()),
         );
 
-        velocity.value += acceleration.value * time.delta_seconds();
-        velocity.value = velocity.value.clamp(
-            Vec2::splat(-VELOCITY_MAXIMUM * time.delta_seconds()),
-            Vec2::splat( VELOCITY_MAXIMUM * time.delta_seconds()),
+        velocity.0 += acceleration.0 * time.delta_secs();
+        velocity.0 = velocity.0.clamp(
+            Vec2::splat(-VELOCITY_MAXIMUM * time.delta_secs()),
+            Vec2::splat( VELOCITY_MAXIMUM * time.delta_secs()),
         );
     }
 }
@@ -59,6 +47,6 @@ pub fn update_position(
     time: Res<Time>,
 ) {
     for (velocity, mut transform) in query.iter_mut() {
-        transform.translation += velocity.value.extend(0.) * time.delta_seconds();
+        transform.translation += velocity.0.extend(0.) * time.delta_secs();
     }
 }
