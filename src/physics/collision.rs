@@ -13,8 +13,8 @@ impl AABBCollider {
 }
 
 pub(crate) fn aabb_collision(a: &AABBCollider, b: &AABBCollider, transform_delta: &Vec3) -> bool {
-    ( a.width/2.  + b.width/2.  >= transform_delta.x.abs()) &&
-    ( a.height/2. + b.height/2. >= transform_delta.y.abs())
+    ( a.width/2.  + b.width/2.  > transform_delta.x.abs()) &&
+    ( a.height/2. + b.height/2. > transform_delta.y.abs())
 }
 
 #[derive(Component, Debug, PartialEq)]
@@ -82,13 +82,16 @@ pub(crate) fn handle_collision (
 
         let delta = transform_b.translation - transform_a.translation;
 
-        let overlap = Vec2::new(
+        let overlap_abs = Vec2::new(
             width_a/2. + width_b/2. - delta.x.abs(),
             height_a/2. + height_b/2. - delta.y.abs(),
         );
 
-        let axis = overlap.x.abs() < overlap.y.abs() && overlap.x.abs() != 0.;
+        let axis = overlap_abs.x.abs() < overlap_abs.y.abs();
 
+        let overlap = overlap_abs * delta.truncate().normalize();
+
+        println!("Collision between {:?} and {:?}, overlap: {}",entity, collided_entity, overlap);
         match (type_a, type_b) {
             (CollideType::Dynamic, CollideType::Dynamic) => {
                 if axis {
@@ -104,8 +107,8 @@ pub(crate) fn handle_collision (
                 else { transform_a.translation.y += overlap.y; }
             },
             (CollideType::Static, CollideType::Dynamic) => {
-                if axis { transform_b.translation.x -= overlap.x; }
-                else { transform_b.translation.y -= overlap.y; }
+                if axis { transform_b.translation.x += overlap.x; }
+                else { transform_b.translation.y += overlap.y; }
             },
             (CollideType::Trigger, CollideType::Dynamic) |
             (CollideType::Dynamic, CollideType::Trigger) => {

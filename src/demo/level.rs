@@ -57,7 +57,6 @@ pub fn spawn_level(
                 },
                 AABBCollider::new(150.,300.),
                 CollideType::Static,
-
             ),
             (
                 Name::new("Gameplay Music"),

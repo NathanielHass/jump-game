@@ -13,14 +13,21 @@ if &shortmess =~ 'A'
 else
   set shortmess=aoO
 endif
-badd +36 ~/Dock/repos/rust/bevy/jump-game/src/physics/collision.rs
-badd +14 src/main.rs
-badd +1 src/physics/mod.rs
-badd +43 ~/Dock/repos/rust/bevy/jump-game/src/physics/motion.rs
-badd +33 ~/Dock/repos/rust/bevy/jump-game/src/physics/gravity.rs
+badd +86 ~/Dock/repos/rust/bevy/jump-game/src/physics/collision.rs
+badd +49 src/main.rs
+badd +11 src/physics/mod.rs
+badd +42 ~/Dock/repos/rust/bevy/jump-game/src/physics/motion.rs
+badd +1 ~/Dock/repos/rust/bevy/jump-game/src/physics/gravity.rs
+badd +18 ~/Dock/repos/rust/bevy/jump-game/src/demo/player.rs
+badd +3 oil:///home/nathaniel/Dock/repos/rust/bevy/jump-game/src/
+badd +22 ~/Dock/repos/rust/bevy/jump-game/src/demo/animation.rs
+badd +49 ~/Dock/repos/rust/bevy/jump-game/src/demo/movement.rs
+badd +5 ~/Dock/repos/rust/bevy/jump-game/src/screens/gameplay.rs
+badd +10 ~/Dock/repos/rust/bevy/jump-game/src/screens/mod.rs
+badd +58 ~/Dock/repos/rust/bevy/jump-game/src/demo/level.rs
 argglobal
 %argdel
-edit ~/Dock/repos/rust/bevy/jump-game/src/physics/gravity.rs
+edit ~/Dock/repos/rust/bevy/jump-game/src/demo/level.rs
 argglobal
 balt ~/Dock/repos/rust/bevy/jump-game/src/physics/collision.rs
 setlocal foldmethod=expr
@@ -31,11 +38,11 @@ setlocal foldlevel=5
 setlocal foldminlines=1
 setlocal foldnestmax=20
 setlocal foldenable
-let s:l = 39 - ((27 * winheight(0) + 14) / 28)
+let s:l = 67 - ((27 * winheight(0) + 14) / 28)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 39
+keepjumps 67
 normal! 0
 tabnext 1
 if exists('s:wipebuf') && len(win_findbuf(s:wipebuf)) == 0 && getbufvar(s:wipebuf, '&buftype') isnot# 'terminal'
